@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Films</title>
+</head>
+<body>
+{% for one_film in film_list %}
+    <div class="flash">Film name: <a href="/films/{{ one_film["id"] }}">{{ one_film["name"] }}</a>
+       <br> Genre: {% for genre in film_genre %}
+                         {% if one_film["id"] == genre["film_id"] %}
+                            {{ genre["genre_id"] }}
+                         {% endif %}
+                    {% endfor %}
+        <br> Year: {{ one_film["year"] }}
+        <br> Description: {{ one_film["description"] }}
+        <br> Rating: {{ one_film["rating"] }}
+        <br> Duration: {{ one_film["duration"] }}
+        <br> Country: {{ one_film["country"] }}
+    </div>
+{% endfor %}
+</body>
+</html>

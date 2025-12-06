@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Main</title>
+</head>
+<body>
+{% for one_film in films %}
+    <div class="flash">Film name: <a href="/films/{{ one_film["id"] }}">{{ one_film["name"] }}</a>
+        <br> Year: {{ one_film["year"] }}
+        <br> Description: {{ one_film["description"] }}
+        <br> Rating: {{ one_film["rating"] }}
+        <br> Duration: {{ one_film["duration"] }}
+        <br> Country: {{ one_film["country"] }}
+    </div>
+{% endfor %}
+</body>
+</html>
