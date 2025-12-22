@@ -17,7 +17,7 @@
         {% endif %}
         {% endfor %}
 <br>Actors: {% for actor in actors %}
-        <a href="/actor/{{ actor["actor_id"] }}"> {{ actor["actor_first_name"] }} {{ actor["actor_last_name"] }}</a>
+        <a href="/actor/{{ actor.id }}"> {{ actor.actor_first_name }} {{ actor.actor_last_name }}</a>
         {% if not loop.last %}
             ,
         {% endif %}

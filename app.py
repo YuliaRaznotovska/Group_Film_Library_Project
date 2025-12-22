@@ -1,46 +1,16 @@
 import functools
 
+from dateutil import parser
 from flask import Flask, url_for
 from flask import request, render_template, session, redirect
-from sqlalchemy import select
-from dateutil import parser
+from sqlalchemy import select, desc, or_
+
 import database
 import models
 
 app = Flask(__name__)
 
 app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
-
-
-# def film_dictionary(cursor, row):
-#     d = {}
-#     for idx, col in enumerate(cursor.description):
-#         d[col[0]] = row[idx]
-#     return d
-#
-#
-# class db_connection:
-#     def __init__(self):
-#         self.conn = sqlite3.connect('database.db')
-#         self.conn.row_factory = film_dictionary
-#         self.cur = self.conn.cursor()
-#
-#     def __enter__(self):
-#         return self.cur
-#
-#     def __exit__(self, exc_type, exc_val, exc_tb):
-#         self.conn.commit()
-#         self.conn.close()
-#
-#
-# def get_db_result(query):
-#     conn = sqlite3.connect('database.db')
-#     conn.row_factory = film_dictionary
-#     cur = conn.cursor()
-#     res = cur.execute(query)
-#     result = res.fetchall()
-#     conn.close()
-#     return result
 
 
 def decorator_check_login(func):
@@ -55,10 +25,13 @@ def decorator_check_login(func):
 
 @app.route('/')
 def main_page():
-    result = get_db_result("SELECT * FROM film ORDER by added_info DESC LIMIT 10")
-    actors = get_db_result(f"Select * FROM actor JOIN actor_film "
-                           f"on actor.id = actor_film.actor_id ")
-    genres = get_db_result(f"SELECT * FROM genre_film JOIN film WHERE genre_film.film_id = film.id")
+    database.init_db()
+    result = database.db_session.execute(
+        select(models.Film).order_by(desc(models.Film.added_info)).limit(10)).scalars().all()
+    actors = database.db_session.execute(select(models.Actor, models.ActorFilm).join(models.ActorFilm,
+                                                                                     models.Actor.id == models.ActorFilm.actor_id)).all()
+    genres = database.db_session.execute(select(models.GenreFilm).join(models.Film,
+                                                                       models.GenreFilm.film_id == models.Film.id)).scalars().all()
     return render_template('main.html', films=result, actors=actors, genres=genres)
 
 
@@ -116,20 +89,18 @@ def user_logout():
 
 @app.route('/users/<user_id>', methods=['GET'])
 def get_user_id(user_id):
-    session_user_id = session.get('user_id')
-    with db_connection() as cur:
-        cur.execute(f'SELECT * FROM user WHERE id = {user_id}')
-        user_by_id = cur.fetchone()
-        if session_user_id is None:
-            user_by_session = None
-        else:
-            cur.execute(f'SELECT * FROM user WHERE id = {session_user_id}')
-            user_by_session = cur.fetchone()
+    database.init_db()
+    user_by_session = session.get('user_id')
+    user_by_id = database.db_session.execute(select(models.User).where(models.User.id == user_id)).scalar_one_or_none()
+    if user_by_session is not None:
+        user_by_session = database.db_session.execute(
+            select(models.User).where(models.User.id == user_by_session)).scalar_one_or_none()
     return render_template('user_page.html', user=user_by_id, user_session=user_by_session)
 
 
 @app.route('/users/<user_id>', methods=['POST'])
 def update_user_id_profile(user_id):
+    database.init_db()
     session_user_id = session.get('user_id')
     if int(user_id) != session_user_id:
         return 'You can edit only your profile'
@@ -139,13 +110,19 @@ def update_user_id_profile(user_id):
         password = request.form["password"]
         email = request.form["user_email"]
         phone_number = request.form["user_phone_num"]
-        birth_date = request.form["user_birth_date"]
+        birth_date = parser.parse(request.form["user_birth_date"])
         additional_info = request.form["user_additional_info"]
-        with db_connection() as cur:
-            cur.execute(
-                f"UPDATE user SET first_name='{first_name}', last_name='{last_name}', password='{password}', "
-                f"email='{email}', phone_number='{phone_number}', birth_date='{birth_date}', "
-                f"additional_info='{additional_info}' WHERE id='{user_id}'")
+        user = database.db_session.execute(
+            select(models.User).where(models.User.id == session_user_id)).scalar_one_or_none()
+        if user is not None:
+            user.first_name = first_name
+            user.last_name = last_name
+            user.password = password
+            user.email = email
+            user.phone_number = phone_number
+            user.birth_date = birth_date
+            user.additional_info = additional_info
+            database.db_session.commit()
     return f'User {user_id} updated'
 
 
@@ -161,57 +138,122 @@ def delete_user_id(user_id):
 
 @app.route('/films', methods=['GET'])
 def get_film_list():
+    database.init_db()
     filter_params = request.args
-    filter_list_text = []
-    additional_genres_filter = ""
-    additional_actors_filter = ""
+    films_query = ''
     for key, value in filter_params.items():
         if value:
             if key == 'name':
-                filter_list_text.append(f"name like '%{value}%'")
+                films_query = database.db_session.execute(
+                    select(models.Film).where(models.Film.name.ilike(f'%{value}%'))).scalars().all()
             elif key == 'genre':
-                additional_genres_filter = " JOIN genre_film ON film.id = genre_film.film_id JOIN genre on genre_film.genre_id = genre.genre"
-                filter_list_text.append(f"genre.genre like '%{value}%'")
+                films_query = database.db_session.execute(select(models.Film).join(models.Film.genres).where(
+                    models.Genre.genre.like(f'%{value}%'))).scalars().all()
             elif key == 'actor_name':
-                additional_actors_filter = " JOIN actor_film ON film.id = actor_film.film_id JOIN actor ON actor_film.actor_id = actor.id "
-                filter_list_text.append(
-                    f"(actor.actor_first_name LIKE '%{value}%' OR actor.actor_last_name LIKE '%{value}%')")
-            else:
-                filter_list_text.append(f"{key}='{value}'")
-    additional_filter = ""
-    if filter_list_text:
-        additional_filter = " where " + " and ".join(filter_list_text)
-    result = get_db_result(
-        f"SELECT DISTINCT film.* FROM film {additional_genres_filter} {additional_actors_filter} {additional_filter} order by added_info desc")
-    actors = get_db_result(f"Select * FROM actor JOIN actor_film "
-                           f"on actor.id = actor_film.actor_id ")
-    genres = get_db_result(f"SELECT * FROM genre_film JOIN film on genre_film.film_id = film.id")
-    genres_selection = get_db_result(
-        f"SELECT DISTINCT genre FROM genre JOIN genre_film on genre.genre = genre_film.genre_id")
-    countries = get_db_result("SELECT DISTINCT country FROM film order by added_info desc")
-    return render_template('films.html', films=result, actors=actors, genres=genres, countries=countries,
-                           genres_selection=genres_selection)
+                films_query = database.db_session.execute(select(models.Film).distinct().join(models.Film.actors).where(
+                    or_(models.Actor.actor_first_name.ilike(f'%{value}%'),
+                        models.Actor.actor_last_name.ilike(f'%{value}%')))).scalars().all()
+            elif key == 'country':
+                films_query = database.db_session.execute(
+                    select(models.Film).distinct().join(models.Film.country_selection).where(
+                        models.Country.country_name.like(f'%{value}%'))).scalars().all()
+            elif key == 'year':
+                films_query = database.db_session.execute(
+                    select(models.Film).where(models.Film.year == value)).scalars().all()
+            elif key == 'rating':
+                films_query = database.db_session.execute(
+                    select(models.Film).where(models.Film.rating == value)).scalars().all()
+    result = films_query
+    genres = database.db_session.execute(select(models.Genre).order_by(models.Genre.genre)).scalars().all()
+    actors = database.db_session.execute(select(models.Actor).join(models.Actor.films)).scalars().all()
+    countries = database.db_session.execute(
+        select(models.Country).order_by(models.Country.country_name)).scalars().all()
+    return render_template('films.html', films=result, genres=genres, actors=actors, countries=countries)
 
 
-@app.route('/films', methods=['POST'])
+@app.route('/films/add', methods=['GET'])
 @decorator_check_login
-def add_film():
-    return 'Film list updated'
+def add_film_profile():
+    database.init_db()
+    user_session = session.get('user_id')
+    if not user_session:
+        return 'You can not add film'
+    else:
+        user_session = database.db_session.execute(
+            select(models.User).where(models.User.id == user_session)).scalar_one_or_none()
+        return render_template('add_film_profile.html', user_session=user_session)
+
+
+@app.route('/films/add', methods=['POST'])
+@decorator_check_login
+def add_film_complete():
+    database.init_db()
+    session_user_id = session.get('user_id')
+    if not session_user_id:
+        return 'You can not add film'
+    else:
+        name = request.form["name"]
+        year = request.form["year"]
+        poster = request.form["poster"]
+        description = request.form["description"]
+        rating = request.form["rating"]
+        duration = request.form["duration"]
+        country = request.form["country"]
+        added_info = request.form["added_info"]
+
+        new_film = models.Film(name=name, year=year, poster=poster, description=description, rating=rating,
+                               duration=duration, country=country, added_info=added_info)
+        country_obj = database.db_session.execute(
+            select(models.Country).where(models.Country.country_name == country)).scalar_one_or_none()
+        if not country_obj:
+            country_obj = models.Country(country_name=country)
+            database.db_session.add(country_obj)
+        new_film.country = country_obj.country_name
+
+        genre_input = request.form["genres"]
+        genre_names = [genre.strip() for genre in genre_input.split(",") if genre.strip()]
+        for name in genre_names:
+            genre_obj = database.db_session.execute(
+                select(models.Genre).where(models.Genre.genre == name)).scalar_one_or_none()
+            if not genre_obj:
+                genre_obj = models.Genre(genre=name)
+                database.db_session.add(genre_obj)
+            new_film.genres.append(genre_obj)
+
+        actor_first_name_input = request.form["actor_first_name"]
+        actor_last_name_input = request.form["actor_last_name"]
+        actors_first_names = [actor.strip() for actor in actor_first_name_input.split(",")
+                              if actor_first_name_input.strip()]
+        actors_last_names = [actor.strip() for actor in actor_last_name_input.split(",") if
+                             actor_last_name_input.strip()]
+        for first_name, last_name in zip(actors_first_names, actors_last_names):
+            actor_obj = database.db_session.execute(select(models.Actor).where(
+                models.Actor.actor_first_name == first_name,
+                models.Actor.actor_last_name == last_name)).scalar_one_or_none()
+            if not actor_obj:
+                actor_obj = models.Actor(actor_first_name=first_name, actor_last_name=last_name)
+                database.db_session.add(actor_obj)
+            new_film.actors.append(actor_obj)
+        database.db_session.add(new_film)
+        database.db_session.commit()
+    return 'New film added'
 
 
 @app.route('/films/<film_id>', methods=['GET'])
 def get_film(film_id):
-    result = get_db_result(f"SELECT * FROM film WHERE id = {film_id}")
-    actors = get_db_result(f"Select * FROM actor JOIN actor_film "
-                           f"on actor.id = actor_film.actor_id WHERE actor_film.film_id = {film_id}")
-    genres = get_db_result(f"SELECT * FROM genre_film WHERE genre_film.film_id = {film_id}")
+    result = database.db_session.execute(select(models.Film).where(models.Film.id == film_id)).scalars().all()
+    actors = database.db_session.execute(select(models.Actor).join(models.ActorFilm,
+                                                                   models.Actor.id == models.ActorFilm.actor_id)
+                                         .where(models.ActorFilm.film_id == film_id)).scalars().all()
+    genres = database.db_session.execute(
+        select(models.GenreFilm).where(models.GenreFilm.film_id == film_id)).scalars().all()
     return render_template('film_profile.html', film_list=result, actors=actors, genres=genres)
 
 
-@app.route('/films/<film_id>', methods=['PUT', 'PATCH'])
+@app.route('/films/update/<film_id>', methods=['POST'])
 @decorator_check_login
 def update_film(film_id):
-    return f'Film {film_id} updated'
+    return render_template('film_update.html')
 
 
 @app.route('/films/<film_id>', methods=['DELETE'])
@@ -222,9 +264,8 @@ def delete_film(film_id):
 
 @app.route('/films/<film_id>/rating', methods=['GET'])
 def get_rating(film_id):
-    rating = get_db_result(f"SELECT rating FROM film WHERE film.id = {film_id}")
-    film_name = get_db_result(f"SELECT name FROM film WHERE film.id ={film_id}")
-    return f'Film {film_name} has rating {rating}'
+    film = database.db_session.execute(select(models.Film).where(models.Film.id == film_id)).scalar_one_or_none()
+    return f'Film {film.name} has rating {film.rating}'
 
 
 @app.route('/films/<film_id>/rating', methods=['POST'])
@@ -252,10 +293,10 @@ def update_feedback(film_id, feedback_id):
 
 @app.route('/films/<film_id>/rating/<feedback_id>/feedback', methods=['GET'])
 def get_feedback_description(film_id, feedback_id):
-    film_name = get_db_result(f"SELECT name FROM film WHERE film.id = {film_id}")
-    feedback = get_db_result(
-        f"SELECT description FROM feedback WHERE feedback.film_id = {film_id} AND feedback.id = {feedback_id}")
-    return f'Film {film_name} has the following feedback: {feedback}'
+    film = database.db_session.execute(select(models.Film).where(models.Film.id == film_id)).scalar_one_or_none()
+    feedback = database.db_session.execute(select(models.Feedback).where(models.Feedback.film_id == film_id,
+                                                                         models.Feedback.id == feedback_id)).scalar_one_or_none()
+    return f'Film {film.name} has the following feedback: {feedback.description}'
 
 
 @app.route('/users/<user_id>/lists', methods=['GET'])
@@ -294,11 +335,11 @@ def delete_film_from_watch_list(user_id, list_id, film_id):
 
 @app.route('/actor/<actor_id>', methods=['GET'])
 def get_actor(actor_id):
-    actor = get_db_result(
-        f"SELECT * FROM actor JOIN actor_film on actor.id=actor_film.actor_id WHERE actor.id = {actor_id}")
-    films = get_db_result(
-        f"SELECT * FROM actor_film JOIN film on actor_film.film_id = film.id WHERE actor_film.actor_id = {actor_id}")
-    return render_template("actor_profile.html", actors=actor, films=films)
+    actor = database.db_session.execute(select(models.Actor).where(models.Actor.id == actor_id)).scalar_one_or_none()
+    films = database.db_session.execute(select(models.Film)
+                                        .join(models.ActorFilm, models.ActorFilm.film_id == models.Film.id)
+                                        .where(models.ActorFilm.actor_id == actor_id)).scalars().all()
+    return render_template("actor_profile.html", actor=actor, films=films)
 
 
 if __name__ == '__main__':

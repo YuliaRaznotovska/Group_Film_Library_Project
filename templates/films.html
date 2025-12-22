@@ -14,8 +14,8 @@
     <label for="genre">Genres:</label>
     <select name="genre" id="genre">
         <option value="">-- Any --</option>
-        {% for genre in genres_selection %}
-            <option value="{{ genre["genre"] }}">{{ genre["genre"] }}</option>
+        {% for genre in genres %}
+            <option value="{{ genre.genre }}">{{ genre.genre }}</option>
         {% endfor %}
     </select>
     <label for="year">Year:</label>
@@ -26,32 +26,32 @@
     <select name="country" id="country">
         <option value="">-- Any --</option>
         {% for country in countries %}
-            <option value="{{ country['country'] }}">{{ country['country'] }}</option>
+            <option value="{{ country.country_name }}">{{ country.country_name }}</option>
     {% endfor %}
     </select>
     <input type="submit" value="Search">
 </form>
 <br>
 {% for one_film in films %}
-    <div class="flash">Film name: <a href="/films/{{ one_film["id"] }}">{{ one_film["name"] }}</a>
-        <br>Genres: {% for genre in genres if genre["film_id"] == one_film["id"] %}
-                    {{ genre["genre_id"] }}
+    <div class="flash">Film name: <a href="/films/{{ one_film.id }}">{{ one_film.name }}</a>
+        <br>Genres: {% for genre in one_film.genres %}
+                    {{ genre.genre }}
                     {% if not loop.last %}
                         ,
                     {% endif %}
             {% endfor %}
-        <br>Actors: {% for actor in actors if actor["film_id"] == one_film["id"] %}
-            <a href="/actor/{{ actor["actor_id"] }}">
-                {{ actor["actor_first_name"] }} {{ actor["actor_last_name"] }}
+        <br>Actors: {% for actor in one_film.actors %}
+            <a href="/actor/{{ actor.id }}">
+                {{ actor.actor_first_name }} {{ actor.actor_last_name }}
             </a>{% if not loop.last %}
                 ,
             {% endif %}
         {% endfor %}
-        <br> Year: {{ one_film["year"] }}
-        <br> Description: {{ one_film["description"] }}
-        <br> Rating: {{ one_film["rating"] }}
-        <br> Duration: {{ one_film["duration"] }}
-        <br> Country: {{ one_film["country"] }}
+        <br> Year: {{ one_film.year }}
+        <br> Description: {{ one_film.description }}
+        <br> Rating: {{ one_film.rating }}
+        <br> Duration: {{ one_film.duration }}
+        <br> Country: {{ one_film.country }}
     </div> <br>
 {% endfor %}
 </body>
