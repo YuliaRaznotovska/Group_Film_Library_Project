@@ -140,30 +140,26 @@ def delete_user_id(user_id):
 def get_film_list():
     database.init_db()
     filter_params = request.args
-    films_query = ''
+    films_query = select(models.Film).distinct()
     for key, value in filter_params.items():
         if value:
             if key == 'name':
-                films_query = database.db_session.execute(
-                    select(models.Film).where(models.Film.name.ilike(f'%{value}%'))).scalars().all()
+                films_query = films_query.where(models.Film.name.ilike(f'%{value}%'))
             elif key == 'genre':
-                films_query = database.db_session.execute(select(models.Film).join(models.Film.genres).where(
-                    models.Genre.genre.like(f'%{value}%'))).scalars().all()
+                films_query = films_query.join(models.Film.genres).where(
+                    models.Genre.genre.ilike(f'%{value}%'))
             elif key == 'actor_name':
-                films_query = database.db_session.execute(select(models.Film).distinct().join(models.Film.actors).where(
+                films_query = films_query.join(models.Film.actors).where(
                     or_(models.Actor.actor_first_name.ilike(f'%{value}%'),
-                        models.Actor.actor_last_name.ilike(f'%{value}%')))).scalars().all()
+                        models.Actor.actor_last_name.ilike(f'%{value}%')))
             elif key == 'country':
-                films_query = database.db_session.execute(
-                    select(models.Film).distinct().join(models.Film.country_selection).where(
-                        models.Country.country_name.like(f'%{value}%'))).scalars().all()
+                films_query = films_query.join(models.Film.country_selection).where(
+                        models.Country.country_name.like(f'%{value}%'))
             elif key == 'year':
-                films_query = database.db_session.execute(
-                    select(models.Film).where(models.Film.year == value)).scalars().all()
+                films_query = films_query.where(models.Film.year == value)
             elif key == 'rating':
-                films_query = database.db_session.execute(
-                    select(models.Film).where(models.Film.rating == value)).scalars().all()
-    result = films_query
+                films_query = films_query.where(models.Film.rating == value)
+    result = database.db_session.execute(films_query).scalars().all()
     genres = database.db_session.execute(select(models.Genre).order_by(models.Genre.genre)).scalars().all()
     actors = database.db_session.execute(select(models.Actor).join(models.Actor.films)).scalars().all()
     countries = database.db_session.execute(
