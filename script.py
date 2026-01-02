@@ -4,17 +4,20 @@ import queue
 import threading
 from multiprocessing import Process, Queue
 
-tickets_list = [104583, 729416, 560982, 381704, 948215, 672093, 815460, 294781, 703649, 186295,
-                459870, 820361, 937104, 568492, 241980, 694728, 305816, 781954, 462137, 950682,
-                178309, 634705, 820947, 496218, 753061, 189574, 602839, 945370, 318496, 770152,
-                584209, 931678, 246805, 709431, 865294, 190748, 437860, 658123, 904571, 312689]
+tickets_list = []
+
+for i in range(1000000):
+    ticket = str(i)
+    while len(ticket) < 6:
+        ticket = "0" + ticket
+    tickets_list.append(ticket)
 
 
 def count_lucky_tickets_thread(start_range, end_range, tickets, thread_num, q):
     lucky_counter = 0
     for ticket in tickets[start_range:end_range]:
-        sum_1 = sum(int(digit) for digit in str(ticket)[:3])
-        sum_2 = sum(int(digit) for digit in str(ticket)[3:])
+        sum_1 = sum(int(digit) for digit in ticket[:3])
+        sum_2 = sum(int(digit) for digit in ticket[3:])
         if sum_1 == sum_2:
             lucky_counter += 1
     print(f" Number of lucky tickets: {lucky_counter} (thread - {thread_num})")
@@ -25,8 +28,8 @@ def count_lucky_tickets_thread(start_range, end_range, tickets, thread_num, q):
 def count_lucky_tickets_process(start_range, end_range, tickets, proc_num, q):
     lucky_counter = 0
     for ticket in tickets[start_range:end_range]:
-        sum_1 = sum(int(digit) for digit in str(ticket)[:3])
-        sum_2 = sum(int(digit) for digit in str(ticket)[3:])
+        sum_1 = sum(int(digit) for digit in ticket[:3])
+        sum_2 = sum(int(digit) for digit in ticket[3:])
         if sum_1 == sum_2:
             lucky_counter += 1
     print(f" Number of lucky tickets: {lucky_counter} (process - {proc_num})")
@@ -41,8 +44,8 @@ if __name__ == "__main__":
     logging.info("Main    : before creating thread")
     t1 = datetime.datetime.now()
     q = queue.Queue()
-    x1 = threading.Thread(target=count_lucky_tickets_thread, args=(1, 19, tickets_list, "thread_1", q))
-    x2 = threading.Thread(target=count_lucky_tickets_thread, args=(20, 40, tickets_list, "thread_2", q))
+    x1 = threading.Thread(target=count_lucky_tickets_thread, args=(0, 400000, tickets_list, "thread_1", q))
+    x2 = threading.Thread(target=count_lucky_tickets_thread, args=(400001, 1000000, tickets_list, "thread_2", q))
     logging.info("Main    : before running thread")
     x1.start()
     x2.start()
@@ -69,8 +72,8 @@ if __name__ == "__main__":
     logging.info("Main    : before creating process")
     t1 = datetime.datetime.now()
     q = Queue()
-    p1 = Process(target=count_lucky_tickets_process, args=(1, 19, tickets_list, "process_1", q))
-    p2 = Process(target=count_lucky_tickets_process, args=(20, 40, tickets_list, "process_2", q))
+    p1 = Process(target=count_lucky_tickets_process, args=(0, 400000, tickets_list, "process_1", q))
+    p2 = Process(target=count_lucky_tickets_process, args=(400001, 1000000, tickets_list, "process_2", q))
     logging.info("Main    : before running process")
     p1.start()
     p2.start()
