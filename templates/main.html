@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Main</title>
+</head>
+<body>
+{% for one_film in films %}
+    <div class="flash">Film name: <a href="/films/{{ one_film.id }}">{{ one_film.name }}</a>
+        <br>Genres: {% for genre in genres if genre.film_id == one_film.id %}
+                    {{ genre.genre_id }}
+                    {% if not loop.last %}
+                        ,
+                    {% endif %}
+            {% endfor %}
+        <br>Actors: {% for actor, actor_film in actors if actor_film.film_id == one_film.id %}
+            <a href="/actor/{{ actor.id }}">
+                {{ actor.actor_first_name }} {{ actor.actor_last_name }}
+            </a>{% if not loop.last %}
+                ,
+            {% endif %}
+        {% endfor %}
+        <br> Year: {{ one_film.year }}
+        <br> Description: {{ one_film.description }}
+        <br> Rating: {{ one_film.rating }}
+        <br> Duration: {{ one_film.duration }}
+        <br> Country: {{ one_film.country }}
+    </div> <br>
+{% endfor %}
+</body>
+</html>
