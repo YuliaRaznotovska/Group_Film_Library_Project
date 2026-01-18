@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ actor.actor_first_name }} {{ actor.actor_last_name }}</title>
+</head>
+<body>
+    <br> Name: {{ actor.actor_first_name }}
+    <br> Surname: {{ actor.actor_last_name }}
+    <br> Birth date: {{ actor.birth_date }}
+    <br> Death date: {{ actor.death_date }}
+    <br> Films: {% for film in films %}
+    <a href="/films/{{ film.id }}">{{ film.name }}</a>
+    {% if not loop.last %}
+    ,
+    {% endif %}
+    {% endfor %}
+</body>
+</html>
