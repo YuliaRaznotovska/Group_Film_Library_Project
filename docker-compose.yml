@@ -21,7 +21,6 @@ services:
       - rabbitmq
 
 
-
   celery_worker:
     build: .
     container_name: celery_worker_container
