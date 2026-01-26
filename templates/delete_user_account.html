@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Delete Account{% endblock %}
+{% block content %}
+{% if not user_session %}
+Hello guest!
+{% else %}
+Hello {{ user_session.first_name }} {{ user_session.last_name}}
+<form action="/users/{{ user_session.id }}/delete" method="POST" onsubmit="return confirm('Are you sure you want to delete your account?');"><button type="submit">Delete</button>
+</form>
+{% endif %}
+{% endblock %}

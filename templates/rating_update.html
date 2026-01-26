@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Rating Update{% endblock %}
+{% block content %}
+{% for one_film in film_list %}
+<div class="flash">Film name: {{ one_film["name"] }}
+    <br>Rating: {{ one_film["rating"] }}
+<form action="/films/{{ one_film["id"] }}/rating" method="POST">
+    <label for="new_rating">Add Rating:</label>
+    <select name="new_rating">
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+    </select>
+    <button type="submit">Rate</button>
+</form>
+</div>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}User page{% endblock %}
+{% block content %}
+{% if not user_session %}
+Hello guest!
+{% else %}
+Hello {{ user_session["first_name"] }} {{ user_session["last_name"] }}
+    <form action="/users/{{ user_session["id"] }}" method="POST" xmlns="http://www.w3.org/1999/html">
+            <label for="user_first_name">First Name:</label>
+            <input type="text" id="user_first_name" name="user_first_name" value="{{ user_session["first_name"] }}"><br><br>
+            <label for="user_last_name">Last Name:</label>
+            <input type="text" id="user_last_name" name="user_last_name" value="{{ user_session["last_name"] }}"><br><br>
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password"><br><br>
+            <label for="user_email">Email:</label>
+            <input type="email" name="user_email" id="user_email" value="{{ user_session["email"] }}"><br><br>
+            <label for="user_phone_num">Phone Number:</label>
+            <input type="tel" name="user_phone_num" id="user_phone_num" value="{{ user_session["phone_number"] }}"><br><br>
+            <label for="user_birth_date">Birth Date:</label>
+            <input type="date" name="user_birth_date" id="user_birth_date" value="{{ user_session["birth_date"] }}"><br><br>
+            <label for="user_additional_info">Additional Info:</label>
+            <textarea type="text" name="user_additional_info" id="user_additional_info" >{{ user_session["additional_info"] }}</textarea><br><br>
+            <br>My Lists:
+            <br>{% for list in user_lists %}
+        <br><a href="/users/{{ user_session["id"] }}/lists/{{ list.id }}"> {{ list.name }}</a>
+            {% endfor %}
+            <button type="submit">Submit</button> <button type="button"><a href="/users/<user_id>/delete">Delete</a></button>
+        </form>
+<br>
+<br>
+<br>
+<br>
+User info:
+<br>
+{{ user["first_name"] }} <br>
+{{ user["last_name"] }} <br>
+{% endif %}
+{% endblock %}

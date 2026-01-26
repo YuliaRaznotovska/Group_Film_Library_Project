@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Add Comment{% endblock %}
+{% block content %}
+<br>Add Comment for {{ film.name }}
+<form action="/films/{{ film.id }}/feedback/add" method="POST">
+    <label for="feedback">Your comment: </label>
+    <textarea name="feedback"></textarea>
+    <br>
+    <br>
+    <button type="submit">Submit</button>
+</form>
+{% endblock %}

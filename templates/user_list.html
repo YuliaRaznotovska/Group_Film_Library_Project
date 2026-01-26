@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}{{ list_name }}{% endblock %}
+{% block content %}
+    <br> {{ list_name }}:
+    {% for film in films %}
+        <br>{{ film.name }}
+        <form action="/users/{{ session.get('user_id') }}/lists/{{ user_list.id }}" method="POST">
+            <input type="hidden" name="film_id" value="{{ film.id }}">
+            <button type="submit">Delete</button>
+        </form>
+    {% endfor %}
+{% endblock %}

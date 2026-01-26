@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}{% for one_film in film_list %}
+        {{ one_film["name"] }}
+    {% endfor %}
+{% endblock %}
+{% block content %}
+{% for one_film in film_list %}
+    <br>
+<div class="flash">Film name: {{ one_film["name"] }}
+    <button><a href="/films/update/{{ one_film["id"] }}">Update Film</a></button>
+<form method="POST" action="{{ url_for('add_film_to_watch_list', film_id=one_film["id"]) }}">
+        <button type="submit" name="list_name" value="Watched">Watched</button>
+        <button type="submit" name="list_name" value="Favourite">Favourite</button>
+        <button type="submit" name="list_name" value="Recommend">Recommend</button>
+        <button type="submit" name="list_name" value="Don't recommend">Do not recommend</button>
+    </form>
+<br>Genres: {% for genre in genres %}
+        {{ genre["genre_id"] }}
+        {% if not loop.last %}
+            ,
+        {% endif %}
+        {% endfor %}
+<br>Actors: {% for actor in actors %}
+        <a href="/actor/{{ actor.id }}"> {{ actor.actor_first_name }} {{ actor.actor_last_name }}</a>
+        {% if not loop.last %}
+            ,
+        {% endif %}
+        {% endfor %}
+<br>Description: {{ one_film["description"] }}
+<br>Year: {{ one_film["year"] }}
+<br>Country: {{ one_film["country"] }}
+<br>Duration: {{ one_film["duration"] }}
+<br>Rating: {{ one_film["rating"] }} <button><a href="/films/{{ one_film["id"] }}/rating">Update Rating</a></button>
+<br>Additional information: {{ one_film["additional_info"] }}
+<br>
+<br>Comments: {% for feedback, first_name, last_name in feedbacks %}
+        <strong>{{ first_name }} {{ last_name }}</strong>
+        <br>{{ feedback.description }}
+        {% else %}
+        <p>No comments yet.</p>
+        {% endfor %}
+<br><button type="button"><a href="/films/{{ one_film["id"] }}/feedback/add">Add Comment/Feedback</a></button>
+</div>
+{% endfor %}
+{% endblock %}

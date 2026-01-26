@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{% block title %}Films App{% endblock %} </title>
+</head>
+<body>
+
+<nav>
+  <a href="/">Main</a>
+  <a href="/films">Films</a>
+
+  {% if session.get('user_id') %}
+    <a href="/films/add">Add film</a>
+    <a href="/users/{{ session.user_id }}">My account</a>
+    <a href="/logout">Logout</a>
+  {% else %}
+    <a href="/register">Register</a>
+    <a href="/login">Login</a>
+  {% endif %}
+</nav>
+
+<main>
+  {% block content %}{% endblock %}
+</main>
+
+</body>
+</html>
